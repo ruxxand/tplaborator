@@ -109,7 +109,7 @@ def sparge_hash(cale_hashuri="probe/hashuri.txt", cale_wordlist="probe/wordlist.
 # A7. argparse și fișa JSON
 def main():
     p = argparse.ArgumentParser(description="Decoder universal forensics")
-    p.add_argument("intrare", help="Sir de text sau cale catre fisier")
+    p.add_argument("intrare", nargs="?", help="Sir de text sau cale catre fisier")
     p.add_argument("--fisier", action="store_true", help="Trateaza intrarea ca fisier binar pentru XOR")
     p.add_argument("--sparge-hash", action="store_true", help="Sparge hash-ul din probe/hashuri.txt")
     a = p.parse_args()
@@ -120,6 +120,9 @@ def main():
         hash_tinta, parola = sparge_hash()
         print(f"[Hash] Tinta: {hash_tinta} -> Parola gasita: {parola}")
         rezultat_json = {"tip": "hash", "hash": hash_tinta, "rezultat": parola}
+
+    elif not a.intrare:
+        p.error("intrare este necesara daca nu folosesti --sparge-hash")
 
     elif a.fisier:
         # Citeste octetii din cale

@@ -1,6 +1,5 @@
 {
-    "strat": [
-        "base64"
-    ],
-    "rezultat": "53595759"
+    "tip": "hash",
+    "hash": "5f4dcc3b5aa765d61d8327deb882cf99",
+    "rezultat": "password"
 }
