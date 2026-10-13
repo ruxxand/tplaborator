@@ -1,5 +1,3 @@
-from asyncio import timeout
-
 import requests
 
 SITES = [
@@ -54,72 +52,71 @@ def check_site(url):
         r = requests.get(url, timeout=5)
         return {
             "status": r.status_code,
-            "content_type": r.headers.get('Content-Type')
+            "content_type": r.headers.get("Content-Type"),
+            "length": len(r.content),
+            "server": r.headers.get("Server", "unknown"),
         }
-    except requests.exceptions.RequestException as e:
-        return {
-            "status": None, 
-            "error": str(e)
-        }
-    if "server" not in result:
-        result["server"] = "unknown"
-    if "content" not in result:
-        result["content"] = ""
-    if "error" not in result:
-        result["error"] = ""
-    
-    
+    except requests.exceptions.RequestException as error:
+        return {"status": None, "error": str(error)}
+
+
 #Partea 4
 def scan_sites():
     results = []
     for site in SITES:
         result = check_site(site)
+        result["url"] = site
         results.append(result)
-    return [r for r in results if r["status"] == 200]
-    results.sort(
-        key=lambda 
-        x: len(x.get("content", ""))
-        )
-    print("Reusite: ", len(results), " | Esuate: ", len(SITES) - len(results))
 
+    successful = [result for result in results if result["status"] == 200]
+    successful.sort(key=lambda result: result.get("length", 0))
+    print(f"Reusite: {len(successful)} | Esuate: {len(results) - len(successful)}")
+    return successful
 
 
 #Partea 5
 def check_headers(url):
-    r = requests.get(url, timeout=5)
-    headers = r.headers
-    missing_headers = [h for h in SECURITY_HEADERS if h not in headers]
+    try:
+        response = requests.get(url, timeout=5)
+    except requests.exceptions.RequestException as error:
+        return {"status": None, "error": str(error)}
 
-#  	Dacă cererea eșuează, returnează {"status": None, "error": "<mesaj scurt>"} .
+    response_headers = {header.lower() for header in response.headers}
     present = [
-        h for h in SECURITY_HEADERS 
-        if h.lower() in (
-            header.lower() 
-            for header in headers
-            )
-        ]
+        header
+        for header in SECURITY_HEADERS
+        if header.lower() in response_headers
+    ]
     missing = [
-        h for h in SECURITY_HEADERS 
-        if h.lower() not in (
-            header.lower() 
-            for header in headers
-            )
-        ]
-    score = int((len(present) / len(SECURITY_HEADERS)) * 100) if SECURITY_HEADERS else 0
+        header
+        for header in SECURITY_HEADERS
+        if header.lower() not in response_headers
+    ]
+    score = int(len(present) * 100 / len(SECURITY_HEADERS)) if SECURITY_HEADERS else 0
     return {
-        "status": None,
-        "error": "<mesaj scurt>",
+        "present": present,
+        "missing": missing,
+        "score": score,
     }
-    return missing_headers
 
 
+#Partea 6
 def retry_check(url, attempts=3):
-    r = requests.get(url, timeout=5)
-    for attempt in range(attempts):
+    if attempts <= 0:
+        return {"status": None, "attempts": 0}
+
+    last_error = None
+    last_status = None
+    for attempt in range(1, attempts + 1):
         try:
-            r = requests.get(url, timeout=5)
-            if r.status_code < 500:
-                return {"status": r.status_code, "attempts": attempt + 1}
-        except requests.exceptions.RequestException as e:
-            if attempt == attempts - 1:
-                return {"status": None, "attempts": attempts, "error": str(e)}
+            response = requests.get(url, timeout=5)
+            last_status = response.status_code
+            if last_status < 500:
+                return {"status": last_status, "attempts": attempt}
+        except requests.exceptions.RequestException as error:
+            last_error = str(error)
+
+    result = {"status": last_status, "attempts": attempts}
+    if last_status is None and last_error is not None:
+        result["error"] = last_error
+    return result
