@@ -10,4 +10,4 @@
 * **Grupa:** SI-262
 * **Email corporativ:** ruxanda.cujba@stud.fcim.utm.md
 * **Verificat:** Dumitrașcu Marius
-Aici exersez git
+* Aici exersez git
